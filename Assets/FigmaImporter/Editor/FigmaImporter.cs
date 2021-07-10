@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using FigmaImporter.Editor.EditorTree;
 using FigmaImporter.Editor.EditorTree.TreeData;
 using UnityEditor;
@@ -16,7 +15,7 @@ namespace FigmaImporter.Editor
         [MenuItem("Window/FigmaImporter")]
         static void Init()
         {
-            FigmaImporter window = (FigmaImporter) EditorWindow.GetWindow(typeof(FigmaImporter));
+            var window = (FigmaImporter) GetWindow(typeof(FigmaImporter));
             window.Show();
         }
 
@@ -27,12 +26,12 @@ namespace FigmaImporter.Editor
         private string _lastClickedNode = String.Empty;
         Dictionary<string, Texture2D> _texturesCache = new Dictionary<string, Texture2D>();
 
-        void OnGUI()
+        private void OnGUI()
         {
             if (_settings == null)
                 _settings = FigmaImporterSettings.GetInstance();
 
-            int currentPosY = 0;
+            var currentPosY = 0;
             if (GUILayout.Button("OpenOauthUrl"))
             {
                 OpenOauthUrl();
@@ -146,7 +145,7 @@ namespace FigmaImporter.Editor
         {
             if (nodesTreeElements == null || nodesTreeElements.Count == 0)
                 return;
-            await Task.WhenAll(nodesTreeElements.Select(x => GetImage(x.figmaId)));
+            await UniTask.WhenAll(nodesTreeElements.Select(x => GetImage(x.figmaId)));
             _lastClickedNode = nodesTreeElements[0].figmaId;
         }
 
@@ -172,7 +171,7 @@ namespace FigmaImporter.Editor
             }
         }
 
-        public async Task GetNodes(string url)
+        public async UniTask GetNodes(string url)
         {
             OnDestroy();
             _nodes = await GetNodeInfo(url);
@@ -186,7 +185,7 @@ namespace FigmaImporter.Editor
         {
             var substrings = s.Split('/');
             var length = substrings.Length;
-            bool isNodeUrl = substrings[length - 1].Contains("node-id");
+            var isNodeUrl = substrings[length - 1].Contains("node-id");
             _fileName = substrings[length - 2];
             if (!isNodeUrl)
             {
@@ -204,10 +203,10 @@ namespace FigmaImporter.Editor
         private const string OAuthUrl =
             "https://www.figma.com/oauth?client_id={0}&redirect_uri={1}&scope=file_read&state={2}&response_type=code";
 
-        public void OpenOauthUrl()
+        private static void OpenOauthUrl()
         {
-            var state = Random.Range(0, Int32.MaxValue);
-            string formattedOauthUrl = String.Format(OAuthUrl, ApplicationKey, RedirectURI, state.ToString());
+            var state = Random.Range(0, int.MaxValue);
+            var formattedOauthUrl = string.Format(OAuthUrl, ApplicationKey, RedirectURI, state.ToString());
             Application.OpenURL(formattedOauthUrl);
         }
 
@@ -216,11 +215,11 @@ namespace FigmaImporter.Editor
         private const string AuthUrl =
             "https://www.figma.com/api/oauth/token?client_id={0}&client_secret={1}&redirect_uri={2}&code={3}&grant_type=authorization_code";
 
-        private string GetOAuthToken()
+        private static string GetOAuthToken()
         {
-            WWWForm form = new WWWForm();
-            string request = String.Format(AuthUrl, ApplicationKey, ClientSecret, RedirectURI, _settings.ClientCode);
-            using (UnityWebRequest www = UnityWebRequest.Post(request, form))
+            var form = new WWWForm();
+            string request = string.Format(AuthUrl, ApplicationKey, ClientSecret, RedirectURI, _settings.ClientCode);
+            using (var www = UnityWebRequest.Post(request, form))
             {
                 www.SendWebRequest();
 
@@ -264,7 +263,7 @@ namespace FigmaImporter.Editor
                 await GetNodes(fileUrl);
             }
 
-            FigmaNodeGenerator generator = new FigmaNodeGenerator(this);
+            var generator = new FigmaNodeGenerator(this);
             foreach (var node in _nodes)
             {
                 var nodeTreeElements = _treeView.TreeView.treeModel.Data;
@@ -274,9 +273,9 @@ namespace FigmaImporter.Editor
             FigmaNodesProgressInfo.HideProgress();
         }
 
-        private async Task<List<Node>> GetNodeInfo(string nodeUrl)
+        private static async UniTask<List<Node>> GetNodeInfo(string nodeUrl)
         {
-            using (UnityWebRequest www = UnityWebRequest.Get(nodeUrl))
+            using (var www = UnityWebRequest.Get(nodeUrl))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {_settings.Token}");
                 www.SendWebRequest();
@@ -284,7 +283,7 @@ namespace FigmaImporter.Editor
                 {
                     FigmaNodesProgressInfo.CurrentInfo = "Loading nodes info";
                     FigmaNodesProgressInfo.ShowProgress(www.downloadProgress);
-                    await Task.Delay(100);
+                    await UniTask.Delay(100);
                 }
 
                 FigmaNodesProgressInfo.HideProgress();
@@ -296,7 +295,7 @@ namespace FigmaImporter.Editor
                 else
                 {
                     var result = www.downloadHandler.text;
-                    FigmaParser parser = new FigmaParser();
+                    var parser = new FigmaParser();
                     return parser.ParseResult(result);
                 }
 
@@ -322,16 +321,16 @@ namespace FigmaImporter.Editor
 
         private const string ImagesUrl = "https://api.figma.com/v1/images/{0}?ids={1}&svg_include_id=true&format=png";
 
-        public async Task<Texture2D> GetImage(string nodeId, bool showProgress = true)
+        public async UniTask<Texture2D> GetImage(string nodeId, bool showProgress = true)
         {
             if (_texturesCache.TryGetValue(nodeId, out var tex))
             {
                 return _texturesCache[nodeId];
             }
 
-            WWWForm form = new WWWForm();
-            string request = string.Format(ImagesUrl, _fileName, nodeId);
-            using (UnityWebRequest www = UnityWebRequest.Get(request))
+            var form = new WWWForm();
+            var request = string.Format(ImagesUrl, _fileName, nodeId);
+            using (var www = UnityWebRequest.Get(request))
             {
                 www.SetRequestHeader("Authorization", $"Bearer {_settings.Token}");
                 www.SendWebRequest();
@@ -340,7 +339,7 @@ namespace FigmaImporter.Editor
                     FigmaNodesProgressInfo.CurrentInfo = "Getting node image info";
                     if (showProgress)
                         FigmaNodesProgressInfo.ShowProgress(www.downloadProgress);
-                    await Task.Delay(100);
+                    await UniTask.Delay(100);
                 }
 
                 FigmaNodesProgressInfo.HideProgress();
@@ -369,27 +368,27 @@ namespace FigmaImporter.Editor
             return null;
         }
 
-        public string GetRendersFolderPath()
+        public static string GetRendersFolderPath()
         {
             return _settings.RendersPath;
         }
 
-        private async Task<Texture2D> LoadTextureByUrl(string url, bool showProgress = true)
+        private static async UniTask<Texture2D> LoadTextureByUrl(string url, bool showProgress = true)
         {
-            using (UnityWebRequest request = UnityWebRequestTexture.GetTexture(url))
+            using (var request = UnityWebRequestTexture.GetTexture(url))
             {
                 request.SendWebRequest();
                 while (request.downloadProgress < 1f)
                 {
                     if (showProgress)
                         FigmaNodesProgressInfo.ShowProgress(request.downloadProgress);
-                    await Task.Delay(100);
+                    await UniTask.Delay(100);
                 }
 
                 if (request.isNetworkError || request.isHttpError)
                     return null;
                 var data = request.downloadHandler.data;
-                Texture2D t = new Texture2D(0, 0);
+                var t = new Texture2D(0, 0);
                 t.LoadImage(data);
                 FigmaNodesProgressInfo.HideProgress();
                 return t;
