@@ -29,7 +29,7 @@ namespace FigmaImporter.Editor
             FigmaNodesProgressInfo.ShowProgress(0f);
             
             //RendersFolderの有無の確認
-            GenerateRenderSaveFolder(_importer.GetRendersFolderPath());
+            GenerateRenderSaveFolder(FigmaImporter.GetRendersFolderPath());
             
             var boundingBox = node.absoluteBoundingBox;
             if (parent == null)
@@ -167,8 +167,8 @@ namespace FigmaImporter.Editor
             FigmaNodesProgressInfo.ShowProgress(0f);
             try
             {
-                SaveTexture(result, $"/{_importer.GetRendersFolderPath()}/{spriteName}");
-                sprite = ChangeTextureToSprite($"Assets/{_importer.GetRendersFolderPath()}/{spriteName}");
+                SaveTexture(result, $"/{FigmaImporter.GetRendersFolderPath()}/{spriteName}");
+                sprite = ChangeTextureToSprite($"Assets/{FigmaImporter.GetRendersFolderPath()}/{spriteName}");
                 if (Math.Abs(t.rect.width - sprite.texture.width) < 1f &&
                     Math.Abs(t.rect.height - sprite.texture.height) < 1f)
                 {
@@ -222,8 +222,8 @@ namespace FigmaImporter.Editor
                     default:
                         var tex = gg.GetTexture(fill, node.absoluteBoundingBox.GetSize(), 256);
                         string fileName = $"{node.name}_{index.ToString()}.png";
-                        SaveTexture(tex, $"/{_importer.GetRendersFolderPath()}/{fileName}");
-                        var sprite = ChangeTextureToSprite($"Assets/{_importer.GetRendersFolderPath()}/{fileName}");
+                        SaveTexture(tex, $"/{FigmaImporter.GetRendersFolderPath()}/{fileName}");
+                        var sprite = ChangeTextureToSprite($"Assets/{FigmaImporter.GetRendersFolderPath()}/{fileName}");
                         image.sprite = sprite;
                         break;
                 }
